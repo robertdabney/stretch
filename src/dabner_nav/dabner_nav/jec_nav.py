@@ -6,9 +6,11 @@
 
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose
 from stretch_nav2.robot_navigator import BasicNavigator, TaskResult
 from dabner_interfaces.srv import RequestNumber
 
+import math
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
@@ -23,8 +25,8 @@ class JecNav(Node):
         node_name = self.get_name()
         self.get_logger().info("{0} started".format(node_name))
 
-        self.srv = self.create_service(RequestNumber, 'request_pose', self.request_pose_callback)
-        
+        self.waypoint_srv = self.create_service(RequestNumber, 'request_waypoint', self.request_waypoint_callback)
+        self.pose_srv = self.create_service(Pose, 'request_pose', self.request_pose_callback)
         # self.declare_parameter('route_file', "")
         # self.route_file = self.get_parameter('route_file').value
 
@@ -59,7 +61,6 @@ class JecNav(Node):
         # self.ready_to_move = False
 
         # self.main()
-        
     def request_pose_callback(self, request, response):
         response.result = self.navigator.isTaskComplete()
         if response.result:
@@ -67,33 +68,57 @@ class JecNav(Node):
             gopose = PoseStamped()
             gopose.header.frame_id = 'map'
             gopose.header.stamp = self.navigator.get_clock().now().to_msg()
-            gopose.pose.position.x = -0.5
-            gopose.pose.position.y = 0.0
-            gopose.pose.orientation.z = 0.0
-            gopose.pose.orientation.w = 0.0
+            gopose.pose.position.x = request.position.x
+            gopose.pose.position.y = request.position.y
+            gopose.pose.orientation.z = request.orientation.z
+            # gopose.pose.orientation.w = 0.0
             self.navigator.goToPose(gopose)
+        return response
+    def make_pose(x,y,z):
+        gopose = PoseStamped()
+        gopose.header.frame_id = 'map'
+        gopose.header.stamp = self.navigator.get_clock().now().to_msg()
+        gopose.pose.position.x = float(x)
+        gopose.pose.position.y = float(y)
+        gopose.pose.orientation.z = float(z)
+        return gopose
+    
+    def waypoint_to_pose(waypoint):
+        match waypoint:
+            case 0:
+                self.get_logger().info("Requested origin")
+                return make_pose(0,0,0)
+            case 1:
+                self.get_logger().info("Requested in front ef elevator")
+                return make_pose(-2.5,-25,math.pi/2)
+            case 2:
+                self.get_logger().info("Requested close to origin 1")
+                return make_pose(0,-1,0)
+            case 3:
+                self.get_logger().info("Requested close to origin 2")
+                return make_pose(-1,-1,0)
+                
+    def request_waypoint_callback(self, request, response):
+        response.result = self.navigator.isTaskComplete()
+        if response.result:
+            self.navigator.goToPose(waypoint_to_pose(request.number))
         return response
             
     def send_initial_pose_origin(self):
-        initial_pose = PoseStamped()
-        initial_pose.header.frame_id = 'map'
-        initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        initial_pose.pose.position.x = 0.0
-        initial_pose.pose.position.y = 0.0
-        initial_pose.pose.orientation.z = 0.0
+        initial_pose = make_pose(0,0,0)
         self.navigator.setInitialPose(initial_pose)
         self.get_logger().info("Sending initial pose: {0}".format(initial_pose))
 
-    def send_initial_pose(self, pose):
-        initial_pose = PoseStamped()
-        initial_pose.header.frame_id = 'map'
-        initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        initial_pose.pose.position.x = pose['x']
-        initial_pose.pose.position.y = pose['y']
-        initial_pose.pose.orientation.z = pose['z']
-        initial_pose.pose.orientation.w = pose['w']
-        self.navigator.setInitialPose(initial_pose)
-        self.get_logger().info("Sending initial pose: {0}".format(initial_pose))
+    # def send_initial_pose(self, pose):
+    #     initial_pose = PoseStamped()
+    #     initial_pose.header.frame_id = 'map'
+    #     initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
+    #     initial_pose.pose.position.x = pose['x']
+    #     initial_pose.pose.position.y = pose['y']
+    #     initial_pose.pose.orientation.z = pose['z']
+    #     initial_pose.pose.orientation.w = pose['w']
+    #     self.navigator.setInitialPose(initial_pose)
+    #     self.get_logger().info("Sending initial pose: {0}".format(initial_pose))
 
 
     # def parse_pose_dict_to_poses(self):
