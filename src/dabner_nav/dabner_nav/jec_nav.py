@@ -9,6 +9,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Pose
 from stretch_nav2.robot_navigator import BasicNavigator, TaskResult
 from dabner_interfaces.srv import RequestNumber
+from std_srvs.srv import Trigger
 
 import math
 import rclpy
@@ -26,6 +27,7 @@ class JecNav(Node):
         self.get_logger().info("{0} started".format(node_name))
 
         self.waypoint_srv = self.create_service(RequestNumber, 'request_waypoint', self.request_waypoint_callback)
+        self.busy_srv = self.create_service(Trigger, 'is_busy', self.request_busy_callback)
         # self.pose_srv = self.create_service(Pose, 'request_pose', self.request_pose_callback)
         # self.declare_parameter('route_file', "")
         # self.route_file = self.get_parameter('route_file').value
@@ -61,6 +63,10 @@ class JecNav(Node):
         # self.ready_to_move = False
 
         # self.main()
+    def request_busy_callback(self,request,response):
+        response.success = self.navigator.isTaskComplete()
+        return response
+    
     def request_pose_callback(self, request, response):
         response.result = self.navigator.isTaskComplete()
         if response.result:
