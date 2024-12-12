@@ -27,8 +27,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'waypoints = dabner_nav.waypoints:main',
-            'jec_nav = dabner_nav.jec_nav:main'
+            'jec_nav = dabner_nav.jec_nav:main',
+            'speech_recognition = dabner_nav.speech:main',
+            'nav_logic = dabner_nav.logic:main',
         ],
     },
 )

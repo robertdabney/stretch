@@ -1,18 +1,12 @@
-#! /usr/bin/env python3
-
-# Adapted from the simple commander demo examples on 
-# https://github.com/ros-planning/navigation2/blob/galactic/nav2_simple_commander/nav2_simple_commander/demo_security.py
-
-
-
 import math
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-import json
 import sys
 import speech_recognition as sr
-import pyttsx3 
+
+# This is the speech recognition node for JEC navigation
+# it is a service server that when called, responds with speech recognition for 5 seconds
 
 class Speech(Node):
     def __init__(self):
@@ -22,30 +16,30 @@ class Speech(Node):
         self.get_logger().info("{0} started".format(node_name))
         self.r = sr.Recognizer() 
         self.speech_srv = self.create_service(Trigger, 'collect_speech', self.request_speech_callback)
-        
-        
-    def SpeakText(self,command):
-        # Initialize the engine
-        engine = pyttsx3.init()
-        engine.say(command) 
-        engine.runAndWait()
+        self.num_words = [
+            "zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
+            "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+            "sixteen", "seventeen", "eighteen", "nineteen",
+        ]
+            
     def request_speech_callback(self,request,response):
         try:
         
             # use the microphone as source for input.
             with sr.Microphone() as source2:
-                
                 # wait for a second to let the recognizer
                 # adjust the energy threshold based on
                 # the surrounding noise level 
                 self.r.adjust_for_ambient_noise(source2, duration=0.2)
-                
+                self.get_logger().info("Listening for input")
                 #listens for the user's input 
-                audio2 = self.r.listen(source2)
-                
+                audio2 = self.r.listen(source2,timeout=5)
+                self.get_logger().info("Parsing Recorded Input")
                 # Using google to recognize audio
                 MyText = self.r.recognize_google(audio2)
                 MyText = MyText.lower()
+                if MyText in self.num_words:
+                    MyText = str(self.num_words.index(MyText))
                 response.success = True
                 response.message = MyText
                 self.get_logger().info("Captured {0}".format(MyText))
@@ -53,9 +47,15 @@ class Speech(Node):
                         
         except sr.RequestError as e:
             self.get_logger().warning("Could not request results; {0}".format(e))
-            
+            response.success = False
+            response.message = ""
+            return response
         except sr.UnknownValueError:
             self.get_logger().warning("unknown error occurred")
+            response.success = False
+            response.message = ""
+            return response
+
             
 
 
