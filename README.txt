@@ -21,6 +21,8 @@ Copy the world file to the turtlebot3 world file with the following command
 
 	You may have to "sudo chmod 777 jec6_world.world" after the copy in the turtlebot folder
 
+Add the following line to the .bashrc and re-source the terminal (or open a new one): export TURTLEBOT3_MODEL=waffle
+
 Then we have three commands, make sure to source the dabner_ws first with the command "source dabner_ws/install/setup.bash"
 
 	Launch the gazebo world: "ros2 launch dabner_nav turtlebot3_jec.launch.py"
