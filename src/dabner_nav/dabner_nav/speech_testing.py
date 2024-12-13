@@ -7,10 +7,6 @@ import speech_recognition as sr
 # Initialize the recognizer 
 r = sr.Recognizer() 
 
-    
-# Loop infinitely for user to
-# speak
-
 while(1):    
     
     # Exception handling to handle
